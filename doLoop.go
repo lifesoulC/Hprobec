@@ -16,6 +16,7 @@ import (
 func gorun(reqping ReqPing) (RespPing, error) {
 
 	overtime := reqping.OverTime //发送超时
+	fmt.Println("this is overtime")
 	fmt.Println(overtime)
 	var Req []icmpReq
 	for _, pairs := range reqping.ReqPairs {
@@ -30,10 +31,20 @@ func gorun(reqping ReqPing) (RespPing, error) {
 
 	pool := new(GoroutinePool) //创建线程池
 	pool.Init(10, len(Req))
+	fmt.Println("Req in gorun")
+	fmt.Println(Req)
+	fmt.Println("len is :=", len(Req))
 
 	for _, req := range Req { //添加任务进入线程池
+		fmt.Println("this is req addtask")
+		fmt.Println(req)
+		b, err := json.Marshal(req)
+		if err != nil {
+			fmt.Println("json req error")
+
+		}
 		pool.AddTask(func() error {
-			return pool.httpDo(req)
+			return pool.httpDo(b)
 		})
 
 	}
@@ -48,9 +59,9 @@ func gorun(reqping ReqPing) (RespPing, error) {
 
 	resp, err := pool.Start()
 	if err != nil {
+		pool.Stop()
 		return resp, err
 	}
-
 	for !isFinish {
 		time.Sleep(time.Millisecond * 100)
 	}
@@ -62,9 +73,17 @@ func gorun(reqping ReqPing) (RespPing, error) {
 	return resp, nil
 }
 
-func (self *GoroutinePool) httpDo(req icmpReq) error {
+func (self *GoroutinePool) httpDo(reqq []byte) error {
 
+	req := icmpReq{}
+	err := json.Unmarshal(reqq, &req)
+	if err != nil {
+		fmt.Println("json req error")
+		return err
+
+	}
 	src := req.Src
+	fmt.Println("this is req in http")
 	fmt.Println(req)
 
 	//dest := req.Dest
@@ -73,6 +92,7 @@ func (self *GoroutinePool) httpDo(req icmpReq) error {
 	b, err := json.Marshal(req)
 	if err != nil {
 		fmt.Println("json req error")
+		return err
 
 	}
 	src = "http://" + src + ":8080/probe/ping"
@@ -81,6 +101,7 @@ func (self *GoroutinePool) httpDo(req icmpReq) error {
 	request, err := http.NewRequest("POST", src, bytes.NewReader(b))
 	if err != nil {
 		fmt.Println("NewRequset error")
+		return err
 	}
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	request.Header.Set("Cookie", "name=anny")

@@ -35,13 +35,23 @@ func Doping(w http.ResponseWriter, r *http.Request) {
 	//		w.Write(b)
 	//		return
 	//	}
+	fmt.Println("this is reqping")
 	fmt.Println(reqping)
 
 	resp, err := gorun(reqping)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("ERROR", err)
+		//		resp.Code = 0
+		//		//resp.ErrCode = 2
+		//		resp.Data[0].Resp.ErrMsg = "client error"
+		//		b, _ := json.Marshal(resp)
+		s := "lcient error"
+		b := []byte(s)
+		w.Write(b)
 		return
+
 	}
+	fmt.Println("this is resp return http")
 	fmt.Println(resp)
 	b, _ := json.Marshal(resp)
 	w.Write(b)
