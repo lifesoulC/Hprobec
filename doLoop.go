@@ -1,24 +1,27 @@
 package main
 
 import (
-	"fmt"
-	"net/http"
-	//"net/url"
-	//"os"
-	//"strconv"
-	//"strings"
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
+	"net/http"
 	"time"
 )
 
 func gorun(reqping ReqPing) (RespPing, error) {
 
+	pool := new(GoroutinePool) //创建线程池
+	pool.Init(10, len(reqping.ReqPairs))
+
+	//	fmt.Println("Req in gorun")
+	//	//fmt.Println(reqping.ReqPairs)
+	//	fmt.Println("len is :=", len(reqping.ReqPairs))
+
 	overtime := reqping.OverTime //发送超时
 	fmt.Println("this is overtime")
 	fmt.Println(overtime)
-	var Req []icmpReq
+
 	for _, pairs := range reqping.ReqPairs {
 		reqOpt := icmpReq{}
 		reqOpt.Src = pairs.Source          //主机源地址
@@ -26,22 +29,12 @@ func gorun(reqping ReqPing) (RespPing, error) {
 		reqOpt.Count = reqping.Count       //发送次数
 		reqOpt.Interval = reqping.Interval //延迟时间
 		reqOpt.TTL = reqping.TTL
-		Req = append(Req, reqOpt)
-	}
-
-	pool := new(GoroutinePool) //创建线程池
-	pool.Init(10, len(Req))
-	fmt.Println("Req in gorun")
-	fmt.Println(Req)
-	fmt.Println("len is :=", len(Req))
-
-	for _, req := range Req { //添加任务进入线程池
-		fmt.Println("this is req addtask")
-		fmt.Println(req)
-		b, err := json.Marshal(req)
+		//		fmt.Println("this is req addtask")
+		//		fmt.Println(reqOpt)
+		b, err := json.Marshal(reqOpt)
 		if err != nil {
 			fmt.Println("json req error")
-
+			break
 		}
 		pool.AddTask(func() error {
 			return pool.httpDo(b)
